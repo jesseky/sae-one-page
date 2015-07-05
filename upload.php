@@ -66,7 +66,7 @@
                 if(!$s->upload($dir, $newfile, $upload['tmp_name'])){
                     $msg = '存储文件失败，请重新上传';
                 }else{ // $s->getUrl('jesse', $newfile);
-                    $cache[$newfile] = $desc; 
+                    $cache[$newfile] = mb_substr($desc,0, 30, 'UTF-8'); 
                     file_put_contents($cachefile, json_encode($cache));
                     $msg = '上传成功';
                     $desc = '';
@@ -96,26 +96,27 @@
             body{font-size: 14px; color: #666;}
             .main{max-width: 600px; text-align:center; margin: 0 auto;}
             .attaches{margin-top: 10px; border: 1px solid #F2F2F2;}
-            .attaches ul{list-style-type: none;}
+            .attaches ol{list-style-type: decimal; list-style-position:inside; text-align: left; padding:0 0.8em;}
             .attaches li{line-height: 2em;}
-            .fields{margin:10px auto; border: 1px dashed #CCC; padding: 10px; text-align: center;}
+            .attaches li b{margin-left: 2em;}
+            .fields{margin:10px auto; border: 1px dashed #CCC; padding: 10px; text-align: center; position: relative;}
             .fields p{margin:0 0 10px 0; padding: 5px 0;}
+            .pro{left:0; top:0; z-index:-1; width:0; height: 100%; position: absolute; background: #adffdc;}
         </style>
     </head>
     <body>
         <div class="main" id="main"><?php } ?>
             <?php if($is_ok){ ?>
             	<h1>文档传输</h1>
-                <br /> 
             	<p><a href="<?php echo $url ;?>">刷新网页</a></p>
                 <?php if(!empty($attaches)){ ?>
                 <div class="attaches">
                     <p>上传的文件</p>
-                    <ul>
+                    <ol>
                         <?php foreach($attaches as $a){ ?>
-                        <li><a href="<?php echo $a['url']; ?>" download="<?php echo $a['name']; ?>"><?php echo !empty($cache[$a['name']]) ? $cache[$a['name']].' ：' : '', $a['name']; ?></a></li>
+                        <li><a href="<?php echo $a['url']; ?>" download="<?php echo $a['name']; ?>"><?php echo $a['name']; ?></a><b><?php echo !empty($cache[$a['name']]) ? $cache[$a['name']] : '';?></b></li>
                         <?php } ?>
-                    </ul>
+                    </ol>
                 </div>
                 <?php } ?>
             	<div class="fields">
@@ -125,6 +126,7 @@
                         <p>描述：<input type="text" name="desc" id="desc" value="<?php echo !empty($desc) ? $desc : ''; ?>" /></p>
                         <input type="submit" value="上 传" id="submit" />
                     </form>
+                    <div class="pro" id="pro"></div>
             	</div>
             	<br />
             <?php }else{ ?>
@@ -147,11 +149,20 @@
             function newXhr(){
             	return window.XMLHttpRequest ? new XMLHttpRequest() : (window.ActiveXObject ? new ActiveXObject('Microsoft.XMLHTTP') : null );
             }
-            function ajaxPost(xhr, url, data, func, btn){
+            function ajaxPost(xhr, url, data, func, btn, pro){
                 if(btn.disabled) return false;
                 btn.disabled = true;
                 btn.src_value = btn.value;
                 btn.value = '正在请求...';
+                if(pro){
+                    pro.style.width = '0' ;
+                    pro.style.display = 'block';
+                    xhr.upload.onprogress = function(evt){
+                        if (evt.lengthComputable) {
+                            pro.style.width=(100*evt.loaded/evt.total)+'%';
+                        }
+                    };
+                }
                 xhr.onreadystatechange = function(){
                     if ( xhr.readyState == 4) {
                         if (xhr.status == 200) {
@@ -202,7 +213,7 @@
                         }else{
                         	id('main').innerHTML = html;
                         }
-                    }, id('submit'));
+                    }, id('submit'), id('pro'));
                 	return false;
                 }
             }

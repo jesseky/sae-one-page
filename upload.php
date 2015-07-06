@@ -1,5 +1,5 @@
 <?php
-	define('PASSWORD', 'password'); // 你的密码
+	define('PASSWORD', 'password');	// 你的密码
 	define('SAVEDOMAIN', 'doc');	// 在sae里设置的文件domain
 	define('KVFILE', 'docs.json');	// k-v 缓存文件名
 	date_default_timezone_set('PRC');
@@ -19,21 +19,21 @@
         $s = strtolower($s);
         return !empty($exts[$s]) ? $exts[$s] : '';
 	}
-	
-	if ($is_ok) {
+
+    if ($is_ok) {
        	$dir = SAVEDOMAIN ;
-		$cachefile = 'saekv://'.KVFILE;
+        $cachefile = 'saekv://'.KVFILE ;
         $cache = file_exists($cachefile) ? @json_decode(file_get_contents($cachefile), true) : array();
         if(empty($cache) && !is_array($cache)) {
             $cache = array();
         }
-		$s = new SaeStorage(); 
-       	if (!empty($_GET['del'])) { // 删除文件
-        	if($s->delete($dir, $_GET['del'])){
-            	$msg = '删除成功';
-                unset($cache[$_GET['del']]);
+        $s = new SaeStorage(); 
+       	if (!empty($_REQUEST['del'])) { // 删除文件
+            if($s->delete($dir, $_REQUEST['del'])){
+                $msg = '删除成功';
+                unset($cache[$_REQUEST['del']]);
                 file_put_contents($cachefile, json_encode($cache));
-        	}
+            }
         }
         
         // 上传文件
@@ -81,9 +81,9 @@
         foreach($lists['files'] as $l){
             $attaches[] = array('url'=>$s->getUrl($dir, $l['fullName']), 'name'=>$l['fullName'], 'size'=>$l['length']);
         }
-	}
+    }
 
-	$url = 'http://'.$_SERVER['HTTP_HOST'] . '/';
+    $url = 'http://'.$_SERVER['HTTP_HOST'] . '/';
 ?>
 <?php if(!$is_ajax){ ?>
 <!DOCTYPE html>
@@ -96,9 +96,12 @@
             body{font-size: 14px; color: #666;}
             .main{max-width: 600px; text-align:center; margin: 0 auto;}
             .attaches{margin-top: 10px; border: 1px solid #F2F2F2;}
-            .attaches ol{list-style-type: decimal; list-style-position:inside; text-align: left; padding:0 0.8em;}
-            .attaches li{line-height: 2em;}
+            .attaches ol{list-style-type: decimal; list-style-position:inside; text-align: left; padding:0 0.8em; -moz-user-select: none; -webkit-user-select: none; -ms-user-select:none; user-select:none;-o-user-select:none;}
+            .attaches li{line-height: 2em; padding: 0 5px;}
+            .attaches li i{float: right;font-style:normal;margin-left: 5px; display:none;cursor:pointer;}
             .attaches li b{margin-left: 2em;}
+            .attaches li.on{background: #FFF205;}
+            .attaches li.on i{display:block;}
             .fields{margin:10px auto; border: 1px dashed #CCC; padding: 10px; text-align: center; position: relative;}
             .fields p{margin:0 0 10px 0; padding: 5px 0;}
             .pro{left:0; top:0; z-index:-1; width:0; height: 100%; position: absolute; background: #adffdc;}
@@ -110,11 +113,11 @@
             	<h1>文档传输</h1>
             	<p><a href="<?php echo $url ;?>">刷新网页</a></p>
                 <?php if(!empty($attaches)){ ?>
-                <div class="attaches">
+                <div class="attaches" id="attaches">
                     <p>上传的文件</p>
                     <ol>
                         <?php foreach($attaches as $a){ ?>
-                        <li><a href="<?php echo $a['url']; ?>" download="<?php echo $a['name']; ?>"><?php echo $a['name']; ?></a><b><?php echo !empty($cache[$a['name']]) ? $cache[$a['name']] : '';?></b></li>
+                        <li onclick="toggle(this);"><i onclick="del(this);">×</i><a href="<?php echo $a['url']; ?>" download="<?php echo $a['name']; ?>"><?php echo $a['name']; ?></a><b><?php echo !empty($cache[$a['name']]) ? $cache[$a['name']] : '';?></b></li>
                         <?php } ?>
                     </ol>
                 </div>
@@ -204,6 +207,9 @@
                 if (!id('desc').value) {
                     alert('请填写描述');
                     return false;
+                } else if(!id('file').value) {
+                	alert('请先选择一个文件'); 
+                    return false;
                 }
                 xhr = newXhr();
                 if (xhr && window.FormData) {
@@ -215,6 +221,24 @@
                         }
                     }, id('submit'), id('pro'));
                 	return false;
+                }
+            }
+            function toggle(obj){
+                var lis = id('attaches').getElementsByTagName('li'); 
+                for (var i=0; i<lis.length; i++) {
+                    if(lis[i] != obj){
+                    	lis[i].className = '';
+                    }
+                }
+                obj.className = obj.className ? '' : 'on';
+            }
+            function del(obj){
+                var link = obj.parentNode.getElementsByTagName('a')[0].text;
+                xhr = newXhr();
+                if (xhr){
+                    ajaxPost(xhr, location.href, 'del='+link, function(html){
+                        id('main').innerHTML = html;
+                    }, id('submit'));
                 }
             }
         </script>

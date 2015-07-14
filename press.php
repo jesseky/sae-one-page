@@ -3,7 +3,7 @@
 	define('KC_PASS', 'pass');
 	define('KC_TITLE', 'Jesse😼随想'); // 定义标题 
 	define('KC_PERPAGE', 0 ); // 分页条数，0 为不分页，其他大于0整数为分页。
-	define('KC_LOGIN', 'login'); // login action 默认不需要修改，修改后可以隐藏登陆地址，更安全！
+	define('KC_LOGIN', 'pass'); // login action 默认不需要修改，修改后可以隐藏登陆地址，更安全！
 	define('KC_DEBUG', true); // 打开调试，默认不需要修改
 	if(!defined('SAE_MYSQL_HOST_M')){ // define your localhost host,user,pass,database,port
 		define('SAE_MYSQL_HOST_M', 'localhost');
@@ -26,13 +26,16 @@
 	}
 	$title = KC_TITLE;
 	$host  = $_SERVER['HTTP_HOST'];
-	$perpage = defined('PERPAGE') && is_int(KC_PERPAGE) && KC_PERPAGE >= 0 ? KC_PERPAGE : 0 ; // get all
+	$perpage = defined('KC_PERPAGE') && is_int(KC_PERPAGE) && KC_PERPAGE >= 0 ? KC_PERPAGE : 0 ; // get all
 	$page = !empty($_GET['page']) ? intval($_GET['page']) : 1; 
 	$base_url = explode('?', $_SERVER['REQUEST_URI'])[0];
 	$s_action = $action = !empty($_GET['a']) ? $_GET['a'] : '';
 	$a_login = defined('KC_LOGIN') && !in_array(KC_LOGIN, array('press', 'logout', 'view', 'error', 'home')) ? KC_LOGIN : 'login';
 	$is_ok = !empty($_SESSION['is_ok']) && KC_IP == $_SESSION['is_ok']['ip'];
 	$is_post = strtoupper($_SERVER['REQUEST_METHOD']) == 'POST';
+	if(!$is_ok && !$is_post && 'view'==$action){
+		$_SESSION['last_url'] = $_SERVER['REQUEST_URI'];
+	}
 	$db = new DB();
 	if($a_login==$action){
 		if($is_ok){
@@ -42,7 +45,8 @@
 		if($is_post && !empty($_POST['pass']) && KC_PASS==$_POST['pass']){
 			$is_ok = true;
 			$_SESSION['is_ok'] = array('ip'=>KC_IP, 'time'=>KC_TIME);
-			header("Location: {$base_url}?a=press");
+			header("Location: ".(!empty($_SESSION['last_url']) ? $_SESSION['last_url'] : $base_url.'?a=press'));
+			unset($_SESSION['last_url']);
 			exit;
 		}
 	}elseif('logout'==$action){
@@ -115,11 +119,12 @@
 			$error = '没有找到内容';
 		}elseif(!$data['pre_status']){
 			$error = '内容已关闭';
-		}elseif($data['pre_pass'] && empty($_SESSION['pass'][$id])){
+		}elseif($data['pre_pass'] && (empty($_SESSION['pass'][$id]) || $_SESSION['pass'][$id]['ip'] != KC_IP)){
 			$is_passed = false;
 		}
 		if($is_post && $data && !empty($_POST['pass']) && $_POST['pass']==$data['pre_pass']){
-			$is_passed = $_SESSION['pass'][$id] = true;
+			$is_passed = true;
+			$_SESSION['pass'][$id] = array('ip'=>KC_IP, 'time'=>KC_TIME);
 		}
 		if(!empty($error)){
 			$action = 'error';
@@ -156,8 +161,10 @@
 			$arr = trim($arr);
 		}
 	}
-	function kc_msg($msg){
-		
+	function kc_cont($s){
+		return implode('', array_map(function($v){
+			return $v ? '<p>'.$v.'</p>' : '<p class="empty">&nbsp;</p>';
+		}, preg_split("/\r\n|\r|\n/", htmlspecialchars(trim($s)))));
 	}
 class DB {
 	private $db;
@@ -253,9 +260,10 @@ class DB {
 		<title><?php echo $title; ?></title>
 		<style type="text/css">
 		html,body,div,h1,h2,h3,h4,h5,h6,ul,ol,li,form,p,input,textarea,a,span{margin:0; padding:0;}
-		html,body{height:100%;}
-		body{font:13px/1.5 Verdana,sans-serif; color: #555; text-shadow: 0 0 2px rgba(0,0,0,0.2); background: #F2F2F2;}
-		h1{text-align:center; font-size: 1.5rem; line-height: 1.3em; padding:1% 0; margin-bottom: 0.2em;}
+		html,body{height:100%; font:13px/1.5 Verdana,sans-serif; }
+		body{color: #555; text-shadow: 0 0 2px rgba(0,0,0,0.2); background: #F2F2F2;}
+		h1{text-align:center; font-size: 1.5rem; line-height: 1.4em; padding:1% 0; margin-bottom: 0.2em;}
+		ul{list-style-type:none;}
 		form .fld{margin-bottom: 0.5rem;}
 		form .fld p{margin-bottom: 4px;}
 		a{color: #222; text-decoration:none;}
@@ -263,26 +271,33 @@ class DB {
 		.txt,.txa{border:1px solid #CCC; box-shadow:0px 1px 1px rgba(0, 0, 0, 0.075) inset; font-size:1rem; padding:1px 3px; line-height:1.5; color:#666; width:100%; display:border-box;box-sizing: border-box; -webkit-box-sizing:border-box; -moz-box-sizing: border-box; transition: border-color 0.15s ease-in-out 0s, box-shadow 0.15s ease-in-out 0s;}
 		.txt:focus, .txa:focus{border-color:#66AFE9;box-shadow:0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 5px rgba(102, 175, 233, 0.6); outline: 0px none; }
 		.error{text-align:center; font-size:1.5rem; line-height:3em;}
-		.cont{font-size: 1.2rem; line-height:1.8em;}
-		.links{padding:0.2em; margin-bottom: 0.8em; color: #999; border-bottom: 1px solid #CCC;}
+        .cont{font-size: 1.2rem; line-height:1.8em; color: #707070;}
+		.cont p{text-indent: 2em; margin-top: 0.5em;}
+		.cont p.empty{line-height: 1em;}
+		.cont p:first-child, .cont p.empty{margin-top:0;}
+        .view:after{content:"----------(END)----------"; display:block; width: 100%; margin-top: 1.5em; text-align: center; color: #DDD;}
+        .links{padding:0.2em; margin-bottom: 0.8em; font-size:0.9rem; color: #999; border-bottom: 1px solid #CCC;}
 		.links a{margin-right: 0.5em;}
 		.links span{float:right;}
-		.a-logout{float:right;}
+		.links span.s-logout{margin:0 0 0 0.5em;}
+		.links span.s-logout a{margin:0;}
 		.paginator{text-align:center; color: #999; padding: 0.5em 0;}
 		.paginator a, .paginator span, .paginator b{padding:0.25em 0.5em; font-weight:normal;}
 		.paginator b{color: #C5C5C5;}
-		.list{}
-		.list ul{list-style-type:none;}
 		.list li{background:#F2F2F2; margin-bottom:0.8em;}
 		.list li.lock{position:relative;}
 		.list li.lock:before{content:"🔒"; position:absolute; left:0; top:-0.5em;}
 		.list li.down a{color: #999; text-decoration: line-through;}
-		.list a{display:block; font-size:1.2rem; line-height:1.3em; padding:0.5em; transition: box-shadow 0.15s ease-in-out 0s;}
+        .list a{display:block; font-size:1.2rem; line-height:1.3em; padding:0.5em; transition: box-shadow 0.15s ease-in-out 0s;}
 		.list a:hover{box-shadow: 0 0 10px rgba(0,0,0,0.2) inset; text-decoration:none;}
 		.list a span{float:right; color: #CBCBCB; font-size:1rem;}
+		.total{margin-top: 1em; line-height: 2em; text-align:center; color: #AAA;}
 		#main{max-width: 800px; margin: 0 auto; background: #FFF; min-height:100%; box-shadow:0 0 10px rgba(0,0,0,0.2);}
-		#content{padding:1% 2%;}
+        #content{padding:1% 2%;}
 		#pass_form{text-align:center;}
+		@media only screen and (max-device-width : 800px) {
+			html,body{font-size: 12px;}
+		}
 		</style>
 	</head>
 	<body>
@@ -291,13 +306,13 @@ class DB {
 				<h1><?php echo $title; ?></h1>
 				<?php if($is_ok || 'home'!=$action){ ?>
 					<div class="links">
+						<?php if($is_ok){ ?><span class="s-logout"><a href="<?php echo $base_url.'?a=logout';?>">Logout</a></span><?php } ?>
 						<?php if('view'==$action){ ?><span><?php echo empty($error) ? date('Y-m-d H:i:s', $data['pre_time']) : ''; ?></span><?php } ?>
 						<?php if('home'!=$action){ ?><a href="<?php echo $base_url;?>">Home</a><?php } ?>
 						<?php if($is_ok){ ?>
 							<?php if('press'!=$action || !empty($is_edit)){ ?><a href="<?php echo $base_url.'?a=press';?>">Press</a><?php } ?>
 							<?php if('view'==$s_action){ ?><a href="<?php echo $base_url.'?a=press&amp;p='.$data['pre_id'];?>">Edit</a><?php } ?>
 							<?php if(!empty($is_edit)){ ?><a href="<?php echo $base_url.'?a=view&amp;p='.$id;?>">View</a><?php } ?>
-							<a href="<?php echo $base_url.'?a=logout';?>" class="a-logout">Logout</a>
 						<?php } ?>
 					</div>
 				<?php } ?>
@@ -325,18 +340,18 @@ class DB {
 								<div><input type="submit" value="查 看" /></div>
 							</form>
 						<?php }else{ ?>
-							<div class="cont"><?php echo nl2br(htmlspecialchars($data['pre_content']));?></div>
+							<div class="cont"><?php echo kc_cont($data['pre_content']);?></div>
 						<?php } ?>
 					</div>
 				<?php }else{ ?>
 					<div id="list" class="list">
 						<ul>
-							<?php foreach($data_list as $d){ $style = array(); $style[]= $d['pre_pass'] ? 'lock' : ''; $style[]= $d['pre_status'] ? '' : 'down';  ?>
+							<?php foreach($data_list as $d){ $style = array(); $d['pre_pass'] && $style[]='lock'; !$d['pre_status'] && $style[]='down';  ?>
 								<li<?php echo !empty($style) ? ' class="'.implode(' ', $style).'"' : '';?>><a href="<?php echo $base_url . '?a=view&amp;p='.$d['pre_id']; ?>"><span><?php echo date('Y/m/d', $d['pre_time']);?></span><?php echo $d['pre_title']; ?></a></li>
 							<?php } ?>
 						</ul>
 					</div>
-					<?php echo $paginator; ?>
+					<?php echo $paginator ? $paginator : '<div class="total">Total: '.$total.'</div>'; ?>
 				<?php } ?>
 			</div>
 		</div>

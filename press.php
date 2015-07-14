@@ -262,7 +262,7 @@ class DB {
 		html,body,div,h1,h2,h3,h4,h5,h6,ul,ol,li,form,p,input,textarea,a,span{margin:0; padding:0;}
 		html,body{height:100%; font:13px/1.5 Verdana,sans-serif; }
 		body{color: #555; text-shadow: 0 0 2px rgba(0,0,0,0.2); background: #F2F2F2;}
-		h1{text-align:center; font-size: 1.5rem; line-height: 1.4em; padding:1% 0; margin-bottom: 0.2em;}
+		h1{text-align:center; font-size: 1.5rem; line-height: 1.4em; padding:1% 0; margin-bottom: 0.2em; word-break:break-all;}
 		ul{list-style-type:none;}
 		form .fld{margin-bottom: 0.5rem;}
 		form .fld p{margin-bottom: 4px;}
@@ -271,7 +271,7 @@ class DB {
 		.txt,.txa{border:1px solid #CCC; box-shadow:0px 1px 1px rgba(0, 0, 0, 0.075) inset; font-size:1rem; padding:1px 3px; line-height:1.5; color:#666; width:100%; display:border-box;box-sizing: border-box; -webkit-box-sizing:border-box; -moz-box-sizing: border-box; transition: border-color 0.15s ease-in-out 0s, box-shadow 0.15s ease-in-out 0s;}
 		.txt:focus, .txa:focus{border-color:#66AFE9;box-shadow:0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 5px rgba(102, 175, 233, 0.6); outline: 0px none; }
 		.error{text-align:center; font-size:1.5rem; line-height:3em;}
-        .cont{font-size: 1.2rem; line-height:1.8em; color: #707070;}
+        .cont{font-size: 1.2rem; line-height:1.8em; color: #707070; word-break:break-all;}
 		.cont p{text-indent: 2em; margin-top: 0.5em;}
 		.cont p.empty{line-height: 1em;}
 		.cont p:first-child, .cont p.empty{margin-top:0;}
@@ -288,7 +288,7 @@ class DB {
 		.list li.lock{position:relative;}
 		.list li.lock:before{content:"🔒"; position:absolute; left:0; top:-0.5em;}
 		.list li.down a{color: #999; text-decoration: line-through;}
-        .list a{display:block; font-size:1.2rem; line-height:1.3em; padding:0.5em; transition: box-shadow 0.15s ease-in-out 0s;}
+        .list a{display:block; font-size:1.2rem; line-height:1.3em; padding:0.5em; transition: box-shadow 0.15s ease-in-out 0s; word-break:break-all;}
 		.list a:hover{box-shadow: 0 0 10px rgba(0,0,0,0.2) inset; text-decoration:none;}
 		.list a span{float:right; color: #CBCBCB; font-size:1rem;}
 		.total{margin-top: 1em; line-height: 2em; text-align:center; color: #AAA;}

@@ -1,9 +1,9 @@
 <?php
 	// sae one page press
-	define('KC_PASS', 'pass');
+	define('KC_PASS', 'pass'); // 默认密码，请修改！
 	define('KC_TITLE', 'Jesse😼随想'); // 定义标题 
 	define('KC_PERPAGE', 0 ); // 分页条数，0 为不分页，其他大于0整数为分页。
-	define('KC_LOGIN', 'pass'); // login action 默认不需要修改，修改后可以隐藏登陆地址，更安全！
+	define('KC_LOGIN', 'login'); // login action 默认不需要修改，修改后可以隐藏登陆地址，更安全！
 	define('KC_DEBUG', true); // 打开调试，默认不需要修改
 	if(!defined('SAE_MYSQL_HOST_M')){ // define your localhost host,user,pass,database,port
 		define('SAE_MYSQL_HOST_M', 'localhost');
@@ -33,7 +33,8 @@
 	$a_login = defined('KC_LOGIN') && !in_array(KC_LOGIN, array('press', 'logout', 'view', 'error', 'home')) ? KC_LOGIN : 'login';
 	$is_ok = !empty($_SESSION['is_ok']) && KC_IP == $_SESSION['is_ok']['ip'];
 	$is_post = strtoupper($_SERVER['REQUEST_METHOD']) == 'POST';
-	if(!$is_ok && !$is_post && 'view'==$action){
+	$is_json = false !== stripos($_SERVER['HTTP_ACCEPT'], 'application/json');
+	if(!$is_ok && in_array($action, array('view', 'press', ''))){
 		$_SESSION['last_url'] = $_SERVER['REQUEST_URI'];
 	}
 	$db = new DB();
@@ -58,6 +59,7 @@
 		}
 	}elseif('press'==$action){
 		if(!$is_ok){
+			$is_json && exit(json_encode(array('s'=>0, 'm'=>'请先登录！', 'login'=> 'login'==$a_login ? $base_url.'?a=login' : '')));
 			if('login'==$a_login){
 				header("Location: {$base_url}?a=login");
 				exit;
@@ -73,6 +75,7 @@
 			}
 		}
 		if($is_ok && $is_post){
+			$r = $to_url = $error = '';
 			$press = array(
 				'pre_status'=>!empty($_POST['pre_status']) ? 1 : 0,
 				'pre_pass'=>!empty($_POST['pre_pass']) ? $_POST['pre_pass'] : '',
@@ -83,8 +86,8 @@
 				$error = '没有找到内容';
 			}elseif($is_edit && $data['pre_status']==$press['pre_status'] && $data['pre_pass']==$press['pre_pass'] &&
 								$data['pre_title']==$press['pre_title'] && $data['pre_content']==$press['pre_content']){
-				header("Location: {$base_url}?a=view&p={$id}");
-				exit;
+				$to_url = $base_url.'?a=view&p='.$id;
+				$r = 1;
 			}elseif(empty($press['pre_title'])){
 				$error = '请填写标题';
 			}elseif(empty($press['pre_content'])){
@@ -92,17 +95,15 @@
 			}elseif($db->fetchField("SELECT pre_id FROM press WHERE pre_title='".$db->escape($press['pre_title'])."' ".($is_edit ? " AND pre_id!='$id' " : '')." LIMIT 1")){
 				$error = '标题已存在，请更换';
 			}else{
-				$where = $is_edit ? " WHERE pre_id='{$id}'" : '';
-				if(!$is_edit){
-					$press['pre_time'] = KC_TIME;
-				}
-				if($db->update($press, 'press', $where)){
-					header("Location: {$base_url}?a=view&p=".($is_edit ? $id : $db->insert_id()));
-					exit;
-				}else{
-					echo '<pre>'.print_r($db, true).'</pre>'; exit;
-					$error = '保存失败';
-				}
+				if(!$is_edit) $press['pre_time'] = KC_TIME ;
+				$r = $db->update($press, 'press', $is_edit ? " WHERE pre_id='{$id}'" : '');
+				$to_url = $r ? $base_url."?a=view&p=".($is_edit ? $id : $db->insert_id()) : '';
+				$error = $r ? '' : '保存失败';
+			}
+			$is_json && exit(json_encode(array('s'=>$r ? 1 : 0, 'url'=>$to_url, 'm'=>$error)));
+			if($to_url){
+				header("Location: {$to_url}");
+				exit;
 			}
 		}
 		if($is_ok){
@@ -276,6 +277,7 @@ class DB {
 		.cont p.empty{line-height: 1em;}
 		.cont p:first-child, .cont p.empty{margin-top:0;}
         .view:after{content:"----------(END)----------"; display:block; width: 100%; margin-top: 1.5em; text-align: center; color: #DDD;}
+		.press-time{float:right; color: #999;}
         .links{padding:0.2em; margin-bottom: 0.8em; font-size:0.9rem; color: #999; border-bottom: 1px solid #CCC;}
 		.links a{margin-right: 0.5em;}
 		.links span{float:right;}
@@ -326,12 +328,12 @@ class DB {
 					</form>
 				<?php }elseif('press'==$action){ ?>
 					<form action="" method="POST" id="press_form">
-						<div class="fld"><p>标题：</p><input type="text" class="txt" name="pre_title" value="<?php echo htmlspecialchars($press['pre_title']); ?>" /></div>
+						<div class="fld"><p>标题：</p><input type="text" class="txt" name="pre_title" id="pre_title" value="<?php echo htmlspecialchars($press['pre_title']); ?>" /></div>
 						<div class="fld"><p>密码：</p><input type="text" class="txt" name="pre_pass" value="<?php echo htmlspecialchars($press['pre_pass']); ?>" /></div>
 						<div class="fld"><label><input type="checkbox" name="pre_status" value="1"<?php echo $press['pre_status'] ? 
 							' checked' : ''; ?> />正常</label></div>
-						<div class="fld"><p>内容：</p><textarea cols="60" rows="8" class="txa" name="pre_content"><?php echo htmlspecialchars($press['pre_content']);?></textarea></div>
-						<div><input type="submit" value="保 存" /></div>
+						<div class="fld"><p>内容：</p><textarea cols="60" rows="8" class="txa" name="pre_content" id="pre_content"><?php echo htmlspecialchars($press['pre_content']);?></textarea></div>
+						<div><span id="press_time" class="press-time"></span><input type="submit" id="pre_submit" value="保 存" /></div>
 					</form>
 				<?php }elseif('view'==$action){ ?>
 					<div class="view">
@@ -357,5 +359,100 @@ class DB {
 			</div>
 		</div>
 		<?php echo !empty($error) && 'error'!=$action ? '<script type="text/javascript">alert("'.$error.'");</script>' : ''; ?>
+		<?php if('press'==$action){ ?>
+		<script type="text/javascript">
+            function id(domid){
+            	return document.getElementById(domid);
+            }
+            function addEvent(el, evt, func){
+                return el.addEventListener ? el.addEventListener(evt, func, false) : (el.attacheEvent ? el.attacheEvent('on'+evt, func) : null);
+            }
+            function newXhr(){
+            	return window.XMLHttpRequest ? new XMLHttpRequest() : (window.ActiveXObject ? new ActiveXObject('Microsoft.XMLHTTP') : null );
+            }
+			function setObject(obj, arr){
+				for(var i in arr) obj[i] = arr[i];
+			}
+            function ajaxPost(xhr, url, data, func, btn, type, pro){
+                if(btn.disabled) return false;
+				setObject(btn, {'disabled': true, src_value: btn.value, value: '正在请求...'});
+				type = type || 'json';
+                if(pro){
+					setObject(pro.style, {width: '0', display: 'block'});
+                    xhr.upload.onprogress = function(evt){
+                        if (evt.lengthComputable) {
+                            pro.style.width=(100*evt.loaded/evt.total)+'%';
+                        }
+                    };
+                }
+                xhr.onreadystatechange = function(){
+                    if ( xhr.readyState == 4) {
+                        if (xhr.status == 200) {
+                            var rsp = (('json'!==type || xhr.responseXML ? xhr.responseXML : xhr.responseText)+'').replace(/(^\s+)|(\s+$)/, '');
+                            func('json'===type ? JSON.parse(rsp) : rsp);
+                        }else{
+                            alert('请求错误');
+                        }
+						setObject(btn, {disabled: false, value: btn.src_value});
+                    }
+                };
+                xhr.open('POST', url);
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+				if('json'===type){
+					xhr.setRequestHeader('Accept', 'application/json, text/javascript, */*; q=0.01');
+				}
+                if (typeof data === 'string' ) {
+                	xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                }
+                xhr.send(data);
+            }
+			function date_time(date){
+				var d = [date.getFullYear(), date.getMonth()+1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds()];
+				for(var k in d){
+					if(d[k].toString().length<2){
+						d[k] = '0'+d[k];
+					}
+				}
+				return d.slice(0,3).join('-')+' '+d.slice(3,6).join(':')+'.'+d[6];
+			}
+			function init_press(){
+				var cache = localStorage.getItem('press');
+				if(cache){
+					var cj = JSON.parse(cache);
+					if(cj && location.href === cj.url){
+						id('press_time').innerHTML = date_time(new Date(cj.time));
+						id('pre_content').value = cj.press;
+					}
+				}
+				addEvent(id('pre_content'), 'input', function(){
+					var date = new Date();
+					id('press_time').innerHTML = date_time(date);
+					localStorage.setItem('press', JSON.stringify({time: date.getTime(), url: location.href, press: id('pre_content').value })); 
+				});
+				addEvent(id('press_form'), 'submit', function(evt){
+					var xhr = newXhr();
+					if(xhr){
+						evt.preventDefault();
+						ajaxPost(xhr, this.action, new FormData(this), function(r){
+							if(r && r.s){
+								localStorage.removeItem('press');
+								if(r.url) location.href = r.url;
+							}else if(r && r.login){
+								alert(r.m);
+								location.href = r.login;
+							}else{
+								alert(r && r.m ? r.m : '请求错误');
+							}
+						}, id('pre_submit'));
+					}
+				});
+			}
+			(function(){ // for press form 
+				window.onload = function(){
+					if('FormData' in window && 'localStorage' in window) init_press();
+				};
+			})();
+		</script>
+		<?php } ?>
 	</body>
 </html>

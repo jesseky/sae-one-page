@@ -4,6 +4,11 @@
 	define('KC_TITLE', 'Jesse😼随想'); // 定义标题 
 	define('KC_PERPAGE', 0 ); // 分页条数，0 为不分页，其他大于0整数为分页。
 	define('KC_LOGIN', 'login'); // login action 默认不需要修改，修改后可以隐藏登陆地址，更安全！
+	define('KC_QINIU_AK', '');	// 七牛的 AccessKey
+	define('KC_QINIU_SK', '');	// 七牛的 SecretKey
+	define('KC_QINIU_SCOPE', '');		// 七牛的空间名称！
+	define('KC_QINIU_DOMAIN', '');		// 七牛的空间对应的域名！
+	define('KC_QINIU_DEADTIME', 600);	// token有效期
 	define('KC_DEBUG', true); // 打开调试，默认不需要修改
 	if(!defined('SAE_MYSQL_HOST_M')){ // define your localhost host,user,pass,database,port
 		define('SAE_MYSQL_HOST_M', 'localhost');
@@ -12,6 +17,7 @@
 		define('SAE_MYSQL_DB', 'test');
 		define('SAE_MYSQL_PORT', 3306);
 	}
+	/* ******************************** -- 下面的不需要修改 -- ******************************** */
 	define('KC_IP', $_SERVER['REMOTE_ADDR']);
 	define('KC_TIME', time());
 	date_default_timezone_set('PRC');
@@ -24,6 +30,12 @@
 		!empty($_GET) && kc_trim($_GET);
 		!empty($_POST) && kc_trim($_POST);
 	}
+	$is_ok = !empty($_SESSION['pass']) && KC_IP == $_SESSION['pass']['ip'] && KC_PASS === $_SESSION['pass']['pass'];
+	$is_post = strtoupper($_SERVER['REQUEST_METHOD']) == 'POST';
+	$is_json = !empty($_SERVER['HTTP_ACCEPT']) && false !== stripos($_SERVER['HTTP_ACCEPT'], 'application/json');
+	$is_file = defined('KC_QINIU_AK') && KC_QINIU_AK && defined('KC_QINIU_SK') && KC_QINIU_SK && defined('KC_QINIU_SCOPE') && KC_QINIU_SCOPE && defined('KC_QINIU_DOMAIN') && KC_QINIU_DOMAIN;
+	header("Content-Type: ".($is_json ? 'application/json' : 'text/html')."; charset=UTF-8");// type
+	
 	$title = KC_TITLE;
 	$host  = $_SERVER['HTTP_HOST'];
 	$perpage = defined('KC_PERPAGE') && is_int(KC_PERPAGE) && KC_PERPAGE >= 0 ? KC_PERPAGE : 0 ; // get all
@@ -31,9 +43,7 @@
 	$base_url = explode('?', $_SERVER['REQUEST_URI'])[0];
 	$s_action = $action = !empty($_GET['a']) ? $_GET['a'] : '';
 	$a_login = defined('KC_LOGIN') && !in_array(KC_LOGIN, array('press', 'logout', 'view', 'error', 'home')) ? KC_LOGIN : 'login';
-	$is_ok = !empty($_SESSION['is_ok']) && KC_IP == $_SESSION['is_ok']['ip'];
-	$is_post = strtoupper($_SERVER['REQUEST_METHOD']) == 'POST';
-	$is_json = false !== stripos($_SERVER['HTTP_ACCEPT'], 'application/json');
+	
 	if(!$is_ok && in_array($action, array('view', 'press', ''))){
 		$_SESSION['last_url'] = $_SERVER['REQUEST_URI'];
 	}
@@ -43,20 +53,26 @@
 			header("Location: {$base_url}");
 			exit;
 		}
-		if($is_post && !empty($_POST['pass']) && KC_PASS==$_POST['pass']){
+		if($is_post && !empty($_POST['pass']) && KC_PASS===$_POST['pass']){
 			$is_ok = true;
-			$_SESSION['is_ok'] = array('ip'=>KC_IP, 'time'=>KC_TIME);
+			$_SESSION['pass'] = array('ip'=>KC_IP, 'time'=>KC_TIME, 'pass'=>$_POST['pass']);
 			header("Location: ".(!empty($_SESSION['last_url']) ? $_SESSION['last_url'] : $base_url.'?a=press'));
 			unset($_SESSION['last_url']);
 			exit;
 		}
 	}elseif('logout'==$action){
 		if($is_ok){
-			$_SESSION['is_ok'] = null;
-			unset($_SESSION['is_ok']);
+			$_SESSION['pass'] = null;
+			unset($_SESSION['pass']);
 			header("Location: {$base_url}");
 			exit;
 		}
+	}elseif('qiniu_token'==$action){
+		!$is_ok && exit(json_encode(array('s'=>0, 'm'=>'请先登录！', 'login'=> 'login'==$a_login ? $base_url.'?a=login' : '')));
+		$ext = kc_ext(isset($_POST['filetype']) ? $_POST['filetype'] : '');
+		!$ext && exit(json_encode(array('s'=>0, 'm'=>'文件扩展名不合法')));
+		$file = !empty($_POST['filename']) && preg_match('/^[a-zA-Z0-9\.\-_]+$/', $_POST['filename']) ? strtolower($_POST['filename']) : date('YmdHis', KC_TIME).'.'.$ext;
+		exit(json_encode(array('s'=>1, 'filename'=>$file, 'token'=>kc_qiniu_token($file))));
 	}elseif('press'==$action){
 		if(!$is_ok){
 			$is_json && exit(json_encode(array('s'=>0, 'm'=>'请先登录！', 'login'=> 'login'==$a_login ? $base_url.'?a=login' : '')));
@@ -120,12 +136,12 @@
 			$error = '没有找到内容';
 		}elseif(!$data['pre_status']){
 			$error = '内容已关闭';
-		}elseif($data['pre_pass'] && (empty($_SESSION['pass'][$id]) || $_SESSION['pass'][$id]['ip'] != KC_IP)){
+		}elseif($data['pre_pass'] && (empty($_SESSION['view_pass'][$id]) || $_SESSION['view_pass'][$id]['ip'] != KC_IP || $_SESSION['view_pass'][$id]['pass'] != $data['pre_pass'])){
 			$is_passed = false;
 		}
 		if($is_post && $data && !empty($_POST['pass']) && $_POST['pass']==$data['pre_pass']){
 			$is_passed = true;
-			$_SESSION['pass'][$id] = array('ip'=>KC_IP, 'time'=>KC_TIME);
+			$_SESSION['view_pass'][$id] = array('ip'=>KC_IP, 'time'=>KC_TIME, 'pass'=>$_POST['pass']);
 		}
 		if(!empty($error)){
 			$action = 'error';
@@ -147,7 +163,20 @@
 	if('error'==$action && !empty($error)){
 		$title = $error . ' - '. KC_TITLE;
 	}
-	
+	function kc_ext($s){
+        $exts = array('image/gif'=>'gif', 'image/jpeg'=>'jpg', 'image/png'=>'png', 'image/pjpeg'=>'jpg'); 
+        $s = strtolower($s);
+        return !empty($exts[$s]) ? $exts[$s] : '';
+	}
+	function kc_qiniu_token($name){ // qiniu token create
+		$putPolicy = sprintf('{"scope":"%s","deadline":%d,"returnBody":"{\"name\":$(fname),\"size\":$(fsize),\"w\":$(imageInfo.width),\"h\":$(imageInfo.height),\"hash\":$(etag)}"}', 
+					  KC_QINIU_SCOPE.':'.$name, KC_TIME+KC_QINIU_DEADTIME); 
+		$encodePutPolicy = kc_base64_encode($putPolicy);
+		return KC_QINIU_AK.':'.kc_base64_encode(hash_hmac('sha1', $encodePutPolicy, KC_QINIU_SK, true)).':'.$encodePutPolicy;
+	}
+    function kc_base64_encode($data){ // qiniu url_safe_base64_encode()
+		return str_replace(array('+', '/'), array('-', '_'), base64_encode($data));
+    }
 	function kc_stripslashes(&$arr){
 		if(is_array($arr)){
 			array_walk_recursive($arr, 'kc_stripslashes');
@@ -163,9 +192,12 @@
 		}
 	}
 	function kc_cont($s){
+		$s = preg_replace_callback('/\!\[([^\[\]]+)\]\(([^\(\)]+)\)/', function($m){
+			return '<img class="img" src="'.$m[2].'" title="'.$m[1].'" />';
+		}, htmlspecialchars(trim($s)));
 		return implode('', array_map(function($v){
 			return $v ? '<p>'.$v.'</p>' : '<p class="empty">&nbsp;</p>';
-		}, preg_split("/\r\n|\r|\n/", htmlspecialchars(trim($s)))));
+		}, preg_split("/\r\n|\r|\n/", $s)));
 	}
 class DB {
 	private $db;
@@ -265,24 +297,35 @@ class DB {
 		body{color: #555; text-shadow: 0 0 2px rgba(0,0,0,0.2); background: #F2F2F2;}
 		h1{text-align:center; font-size: 1.8rem; line-height: 1.4em; padding:1% 0; margin-bottom: 0.5em; word-break:break-all;}
 		ul{list-style-type:none;}
-		form .fld{margin-bottom: 0.5rem;}
-		form .fld p{margin-bottom: 4px;}
 		a{color: #222; text-decoration:none;}
 		a:hover{text-decoration: underline;}
+		#main{max-width: 800px; margin: 0 auto; background: #FFF; min-height:100%; box-shadow:0 0 10px rgba(0,0,0,0.2);}
+        #content{padding:1% 2%;}
+		#pass_form{text-align:center;}
+        .links{padding:0.2em; margin-bottom: 0.8em; font-size:0.9rem; color: #999; border-bottom: 1px solid #CCC;}
+		.links a{margin-right: 0.5em;}
+		.links span{float:right;}
+		.links span.s-logout{margin:0 0 0 0.5em;}
+		.links span.s-logout a{margin:0;}
+		.error{text-align:center; font-size:1.5rem; line-height:3em;}
+		/* press */
+		.fld{margin-bottom: 0.5rem;}
+		.fld p, .fld .fld-p{margin-bottom: 4px; padding: 0 4px;}
+		.fld-p{position:relative;}
+		.fld-c{position:relative; z-index:2;}
+		.fld-pro{position: absolute; z-index: 0; left:0; top:0; width:0; height: 100%; background: #adffdc}
 		.txt,.txa{border:1px solid #CCC; box-shadow:0px 1px 1px rgba(0, 0, 0, 0.075) inset; font-size:1rem; padding:1px 3px; line-height:1.5; color:#666; width:100%; display:border-box;box-sizing: border-box; -webkit-box-sizing:border-box; -moz-box-sizing: border-box; transition: border-color 0.15s ease-in-out 0s, box-shadow 0.15s ease-in-out 0s;}
 		.txt:focus, .txa:focus{border-color:#66AFE9;box-shadow:0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 5px rgba(102, 175, 233, 0.6); outline: 0px none; }
-		.error{text-align:center; font-size:1.5rem; line-height:3em;}
+		.pre-note{word-break:break-all; color: #999; text-shadow:none; border-top: 1px dashed #CCC; margin-top: 2em;padding: 0.5em 0;}
+		/* view */
         .cont{font-size: 1.2rem; line-height:1.8em; color: #707070; word-break:break-all;}
 		.cont p{margin-top: 0.5em;}
 		.cont p.empty{line-height: 1em;}
 		.cont p:first-child, .cont p.empty{margin-top:0;}
         .view:after{content:"----------(END)----------"; display:block; width: 100%; margin-top: 1.5em; text-align: center; color: #DDD;}
 		.press-time{float:right; color: #999;}
-        .links{padding:0.2em; margin-bottom: 0.8em; font-size:0.9rem; color: #999; border-bottom: 1px solid #CCC;}
-		.links a{margin-right: 0.5em;}
-		.links span{float:right;}
-		.links span.s-logout{margin:0 0 0 0.5em;}
-		.links span.s-logout a{margin:0;}
+		.img{display:block; margin:0 auto; max-width: 100%;}
+        /* home */
 		.paginator{text-align:center; color: #999; padding: 0.5em 0;}
 		.paginator a, .paginator span, .paginator b{padding:0.25em 0.5em; font-weight:normal;}
 		.paginator b{color: #C5C5C5;}
@@ -294,9 +337,6 @@ class DB {
 		.list a:hover{box-shadow: 0 0 10px rgba(0,0,0,0.2) inset; text-decoration:none;}
 		.list a span{float:right; color: #CBCBCB; font-size:1rem;}
 		.total{margin-top: 1em; line-height: 2em; text-align:center; color: #AAA;}
-		#main{max-width: 800px; margin: 0 auto; background: #FFF; min-height:100%; box-shadow:0 0 10px rgba(0,0,0,0.2);}
-        #content{padding:1% 2%;}
-		#pass_form{text-align:center;}
 		@media only screen and (max-device-width : 800px) {
 			html,body{font-size: 12px;}
 			h1{font-size:1.5rem;}
@@ -332,8 +372,12 @@ class DB {
 						<div class="fld"><p>密码：</p><input type="text" class="txt" name="pre_pass" value="<?php echo htmlspecialchars($press['pre_pass']); ?>" /></div>
 						<div class="fld"><label><input type="checkbox" name="pre_status" value="1"<?php echo $press['pre_status'] ? 
 							' checked' : ''; ?> />正常</label></div>
-						<div class="fld"><p>内容：</p><textarea cols="60" rows="8" class="txa" name="pre_content" id="pre_content"><?php echo htmlspecialchars($press['pre_content']);?></textarea></div>
+						<div class="fld"><div class="fld-p"><div class="fld-c"><?php if($is_file){ ?>图片：<input type="file" name="file" id="file" value="" /><?php }else{ echo '内容：'; } ?></div><div class="fld-pro" id="pro" url="<?php echo $base_url.'?a=qiniu_token';?>" link="<?php echo KC_QINIU_DOMAIN; ?>"></div></div>
+							<textarea cols="60" rows="8" class="txa" name="pre_content" id="pre_content"><?php echo htmlspecialchars($press['pre_content']);?></textarea>
+						</div>
 						<div><span id="press_time" class="press-time"></span><input type="submit" id="pre_submit" value="保 存" /></div>
+						<div class="pre-note">备注：<br>编辑内容未保存，再次打开，会自动恢复。<br>
+							上传图片文件名只含有（数字、字母、_-.等）不会被重命名。</div>
 					</form>
 				<?php }elseif('view'==$action){ ?>
 					<div class="view">
@@ -361,15 +405,15 @@ class DB {
 		<?php echo !empty($error) && 'error'!=$action ? '<script type="text/javascript">alert("'.$error.'");</script>' : ''; ?>
 		<?php if('press'==$action){ ?>
 		<script type="text/javascript">
-            function id(domid){
-            	return document.getElementById(domid);
-            }
-            function addEvent(el, evt, func){
-                return el.addEventListener ? el.addEventListener(evt, func, false) : (el.attacheEvent ? el.attacheEvent('on'+evt, func) : null);
-            }
-            function newXhr(){
-            	return window.XMLHttpRequest ? new XMLHttpRequest() : (window.ActiveXObject ? new ActiveXObject('Microsoft.XMLHTTP') : null );
-            }
+			function id(domid){
+				return document.getElementById(domid);
+			}
+			function addEvent(el, evt, func){
+				return el.addEventListener ? el.addEventListener(evt, func, false) : (el.attacheEvent ? el.attacheEvent('on'+evt, func) : null);
+			}
+			function newXhr(){
+				return window.XMLHttpRequest ? new XMLHttpRequest() : (window.ActiveXObject ? new ActiveXObject('Microsoft.XMLHTTP') : null );
+			}
 			function setObject(obj, arr){
 				for(var i in arr) obj[i] = arr[i];
 			}
@@ -379,41 +423,51 @@ class DB {
 				type = type || 'json';
                 if(pro){
 					setObject(pro.style, {width: '0', display: 'block'});
-                    xhr.upload.onprogress = function(evt){
-                        if (evt.lengthComputable) {
-                            pro.style.width=(100*evt.loaded/evt.total)+'%';
-                        }
-                    };
+                    xhr.upload.onprogress = function(evt){ if (evt.lengthComputable) pro.style.width=(100*evt.loaded/evt.total)+'%'; };
                 }
                 xhr.onreadystatechange = function(){
-                    if ( xhr.readyState == 4) {
-                        if (xhr.status == 200) {
-                            var rsp = (('json'!==type || xhr.responseXML ? xhr.responseXML : xhr.responseText)+'').replace(/(^\s+)|(\s+$)/, '');
-                            func('json'===type ? JSON.parse(rsp) : rsp);
-                        }else{
-                            alert('请求错误');
-                        }
+					if ( xhr.readyState == 4) {
 						setObject(btn, {disabled: false, value: btn.src_value});
-                    }
-                };
-                xhr.open('POST', url);
-                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-				if('json'===type){
-					xhr.setRequestHeader('Accept', 'application/json, text/javascript, */*; q=0.01');
-				}
-                if (typeof data === 'string' ) {
-                	xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                }
-                xhr.send(data);
+						if (xhr.status == 200) {
+							var rsp = (xhr.responseText+'').replace(/(^\s+)|(\s+$)/, '');
+							func('json'===type ? JSON.parse(rsp) : rsp);
+                        }else{
+							alert('请求错误');
+                        }
+					}
+				};
+				xhr.open('POST', url || location.href);
+				xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+				if('json'===type) xhr.setRequestHeader('Accept', 'application/json');
+				if (typeof data === 'string') xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+				xhr.send(data);
             }
 			function date_time(date){
 				var d = [date.getFullYear(), date.getMonth()+1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds()];
-				for(var k in d){
-					if(d[k].toString().length<2){
-						d[k] = '0'+d[k];
-					}
-				}
+				for(var k in d) if(d[k].toString().length<2) d[k] = '0'+d[k];
 				return d.slice(0,3).join('-')+' '+d.slice(3,6).join(':')+'.'+d[6];
+			}
+			function insert_image(name, link){
+				var img = ' !['+name+']('+link+') ';
+				var pc = id('pre_content');
+				var pcv = pc.value;
+				pc.focus();
+				if(pc.selectionStart){
+					pc.value = pcv.substring(0, pc.selectionStart) + img + pcv.substring(pc.selectionStart, pcv.length);
+				}else{
+					pc.value += img;
+				}
+			}
+			function upload_qiniu(token, filename, file){
+				var xhr = newXhr();
+				var fm = new FormData();
+				fm.append('token', token);
+				fm.append('key', filename);
+				fm.append('file', file);
+				ajaxPost(xhr, 'http://upload.qiniu.com/', fm, function(qr){
+					insert_image(filename.replace(/\.[^\.]+$/, ''), 'http://'+id('pro').getAttribute('link')+'/'+filename);
+					setObject(id('pro').style, {width: '0'});
+				}, id('pre_submit'), 'json', id('pro'));
 			}
 			function init_press(){
 				var cache = localStorage.getItem('press');
@@ -446,11 +500,19 @@ class DB {
 						}, id('pre_submit'));
 					}
 				});
+				addEvent(id('file'), 'change', function(evt){
+					var xhr = newXhr();
+					if(xhr){
+						var file = this.files[0];
+						ajaxPost(xhr, id('pro').getAttribute('url'), 'filename='+encodeURIComponent(file.name)+'&filetype='+file.type, function(r){
+							if(r && r.token) upload_qiniu(r.token, r.filename, file); 
+							else alert(r && r.m ? r.m : '请求错误');
+						}, id('pre_submit'));
+					}
+				}, id('pre_submit'));
 			}
 			(function(){ // for press form 
-				window.onload = function(){
-					if('FormData' in window && 'localStorage' in window) init_press();
-				};
+				window.onload = function(){ if('FormData' in window && 'localStorage' in window) init_press(); };
 			})();
 		</script>
 		<?php } ?>

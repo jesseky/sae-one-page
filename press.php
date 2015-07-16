@@ -35,6 +35,7 @@
 	$is_json = !empty($_SERVER['HTTP_ACCEPT']) && false !== stripos($_SERVER['HTTP_ACCEPT'], 'application/json');
 	$is_file = defined('KC_QINIU_AK') && KC_QINIU_AK && defined('KC_QINIU_SK') && KC_QINIU_SK && defined('KC_QINIU_SCOPE') && KC_QINIU_SCOPE && defined('KC_QINIU_DOMAIN') && KC_QINIU_DOMAIN;
 	header("Content-Type: ".($is_json ? 'application/json' : 'text/html')."; charset=UTF-8");// type
+	header("Access-Control-Allow-Origin: *");
 	
 	$title = KC_TITLE;
 	$host  = $_SERVER['HTTP_HOST'];

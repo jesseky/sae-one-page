@@ -288,234 +288,226 @@ class DB {
 ?>
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
-		<title><?php echo $title; ?></title>
-		<style type="text/css">
-		html,body,div,h1,h2,h3,h4,h5,h6,ul,ol,li,form,p,input,textarea,a,span{margin:0; padding:0;}
-		html,body{height:100%; font:13px/1.5 Verdana,sans-serif; }
-		body{color: #555; text-shadow: 0 0 2px rgba(0,0,0,0.2); background: #F2F2F2;}
-		h1{text-align:center; font-size: 1.8rem; line-height: 1.4em; padding:1% 0; margin-bottom: 0.5em; word-break:break-all;}
-		ul{list-style-type:none;}
-		a{color: #222; text-decoration:none;}
-		a:hover{text-decoration: underline;}
-		#main{max-width: 800px; margin: 0 auto; background: #FFF; min-height:100%; box-shadow:0 0 10px rgba(0,0,0,0.2);}
-        #content{padding:1% 2%;}
-		#pass_form{text-align:center;}
-        .links{padding:0.2em; margin-bottom: 0.8em; font-size:0.9rem; color: #999; border-bottom: 1px solid #CCC;}
-		.links a{margin-right: 0.5em;}
-		.links span{float:right;}
-		.links span.s-logout{margin:0 0 0 0.5em;}
-		.links span.s-logout a{margin:0;}
-		.error{text-align:center; font-size:1.5rem; line-height:3em;}
-		/* press */
-		.fld{margin-bottom: 0.5rem;}
-		.fld p, .fld .fld-p{margin-bottom: 4px; padding: 0 4px;}
-		.fld-p{position:relative;}
-		.fld-c{position:relative; z-index:2;}
-		.fld-pro{position: absolute; z-index: 0; left:0; top:0; width:0; height: 100%; background: #adffdc}
-		.txt,.txa{border:1px solid #CCC; box-shadow:0px 1px 1px rgba(0, 0, 0, 0.075) inset; font-size:1rem; padding:1px 3px; line-height:1.5; color:#666; width:100%; display:border-box;box-sizing: border-box; -webkit-box-sizing:border-box; -moz-box-sizing: border-box; transition: border-color 0.15s ease-in-out 0s, box-shadow 0.15s ease-in-out 0s;}
-		.txt:focus, .txa:focus{border-color:#66AFE9;box-shadow:0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 5px rgba(102, 175, 233, 0.6); outline: 0px none; }
-		.pre-note{word-break:break-all; color: #999; text-shadow:none; border-top: 1px dashed #CCC; margin-top: 2em;padding: 0.5em 0;}
-		/* view */
-        .cont{font-size: 1.2rem; line-height:1.8em; color: #707070; word-break:break-all;}
-		.cont p{margin-top: 0.5em;}
-		.cont p.empty{line-height: 1em;}
-		.cont p:first-child, .cont p.empty{margin-top:0;}
-        .view:after{content:"----------(END)----------"; display:block; width: 100%; margin-top: 1.5em; text-align: center; color: #DDD;}
-		.press-time{float:right; color: #999;}
-		.img{display:block; margin:0 auto; max-width: 100%;}
-        /* home */
-		.paginator{text-align:center; color: #999; padding: 0.5em 0;}
-		.paginator a, .paginator span, .paginator b{padding:0.25em 0.5em; font-weight:normal;}
-		.paginator b{color: #C5C5C5;}
-		.list li{background:#F2F2F2; margin-bottom:0.8em;}
-		.list li.lock{position:relative;}
-		.list li.lock:before{content:"🔒"; position:absolute; left:0; top:-0.5em;}
-		.list li.down a{color: #999; text-decoration: line-through;}
-        .list a{display:block; font-size:1.2rem; line-height:1.3em; padding:0.5em; transition: box-shadow 0.15s ease-in-out 0s; word-break:break-all;}
-		.list a:hover{box-shadow: 0 0 10px rgba(0,0,0,0.2) inset; text-decoration:none;}
-		.list a span{float:right; color: #CBCBCB; font-size:1rem;}
-		.total{margin-top: 1em; line-height: 2em; text-align:center; color: #AAA;}
-		@media only screen and (max-device-width : 800px) {
-			html,body{font-size: 12px;}
-			h1{font-size:1.5rem;}
-		}
-		</style>
-	</head>
-	<body>
-		<div id="main">
-			<div id="content">
-				<h1><?php echo $title; ?></h1>
-				<?php if($is_ok || 'home'!=$action){ ?>
-					<div class="links">
-						<?php if($is_ok){ ?><span class="s-logout"><a href="<?php echo $base_url.'?a=logout';?>">Logout</a></span><?php } ?>
-						<?php if('view'==$action){ ?><span><?php echo empty($error) ? date('Y-m-d H:i:s', $data['pre_time']) : ''; ?></span><?php } ?>
-						<?php if('home'!=$action){ ?><a href="<?php echo $base_url;?>">Home</a><?php } ?>
-						<?php if($is_ok){ ?>
-							<?php if('press'!=$action || !empty($is_edit)){ ?><a href="<?php echo $base_url.'?a=press';?>">Press</a><?php } ?>
-							<?php if('view'==$s_action){ ?><a href="<?php echo $base_url.'?a=press&amp;p='.$data['pre_id'];?>">Edit</a><?php } ?>
-							<?php if(!empty($is_edit)){ ?><a href="<?php echo $base_url.'?a=view&amp;p='.$id;?>">View</a><?php } ?>
-						<?php } ?>
-					</div>
-				<?php } ?>
-				<?php if('error'==$action){ ?>
-					<div class="error"><?php echo $error; ?></div>
-				<?php }elseif($a_login==$action){?>
-					<form action="" method="POST" id="pass_form">
-						<div class="fld"><p>密码：</p><input type="password" class="txt" name="pass" value="" /></div>
-						<div><input type="submit" value="进 入" /></div>
-					</form>
-				<?php }elseif('press'==$action){ ?>
-					<form action="" method="POST" id="press_form">
-						<div class="fld"><p>标题：</p><input type="text" class="txt" name="pre_title" id="pre_title" value="<?php echo htmlspecialchars($press['pre_title']); ?>" /></div>
-						<div class="fld"><p>密码：</p><input type="text" class="txt" name="pre_pass" value="<?php echo htmlspecialchars($press['pre_pass']); ?>" /></div>
-						<div class="fld"><label><input type="checkbox" name="pre_status" value="1"<?php echo $press['pre_status'] ? 
-							' checked' : ''; ?> />正常</label></div>
-						<div class="fld"><div class="fld-p"><div class="fld-c"><?php if($is_file){ ?>图片：<input type="file" name="file" id="file" value="" /><?php }else{ echo '内容：'; } ?></div><div class="fld-pro" id="pro" url="<?php echo $base_url.'?a=qiniu_token';?>" link="<?php echo KC_QINIU_DOMAIN; ?>"></div></div>
-							<textarea cols="60" rows="8" class="txa" name="pre_content" id="pre_content"><?php echo htmlspecialchars($press['pre_content']);?></textarea>
-						</div>
-						<div><span id="press_time" class="press-time"></span><input type="submit" id="pre_submit" value="保 存" /></div>
-						<div class="pre-note">备注：<br>编辑内容未保存，再次打开，会自动恢复。<br>
-							上传图片文件名只含有（数字、字母、_-.等）不会被重命名。</div>
-					</form>
-				<?php }elseif('view'==$action){ ?>
-					<div class="view">
-						<?php if(!$is_passed){ ?>
-							<form action="" method="POST" id="pass_form">
-								<div class="fld"><p>输入Pass查看：</p><input type="text" class="txt" name="pass" value="" /></div>
-								<div><input type="submit" value="查 看" /></div>
-							</form>
-						<?php }else{ ?>
-							<div class="cont"><?php echo kc_cont($data['pre_content']);?></div>
-						<?php } ?>
-					</div>
-				<?php }else{ ?>
-					<div id="list" class="list">
-						<ul>
-							<?php foreach($data_list as $d){ $style = array(); $d['pre_pass'] && $style[]='lock'; !$d['pre_status'] && $style[]='down';  ?>
-								<li<?php echo !empty($style) ? ' class="'.implode(' ', $style).'"' : '';?>><a href="<?php echo $base_url . '?a=view&amp;p='.$d['pre_id']; ?>"><span><?php echo date('Y/m/d', $d['pre_time']);?></span><?php echo $d['pre_title']; ?></a></li>
-							<?php } ?>
-						</ul>
-					</div>
-					<?php echo $paginator ? $paginator : '<div class="total">Total: '.$total.'</div>'; ?>
-				<?php } ?>
-			</div>
-		</div>
-		<?php echo !empty($error) && 'error'!=$action ? '<script type="text/javascript">alert("'.$error.'");</script>' : ''; ?>
-		<?php if('press'==$action){ ?>
-		<script type="text/javascript">
-			function id(domid){
-				return document.getElementById(domid);
-			}
-			function addEvent(el, evt, func){
-				return el.addEventListener ? el.addEventListener(evt, func, false) : (el.attacheEvent ? el.attacheEvent('on'+evt, func) : null);
-			}
-			function newXhr(){
-				return window.XMLHttpRequest ? new XMLHttpRequest() : (window.ActiveXObject ? new ActiveXObject('Microsoft.XMLHTTP') : null );
-			}
-			function setObject(obj, arr){
-				for(var i in arr) obj[i] = arr[i];
-			}
-            function ajaxPost(xhr, url, data, func, btn, type, pro){
-                if(btn.disabled) return false;
-				setObject(btn, {'disabled': true, src_value: btn.value, value: '正在请求...'});
-				type = type || 'json';
-                if(pro){
-					setObject(pro.style, {width: '0', display: 'block'});
-                    xhr.upload.onprogress = function(evt){ if (evt.lengthComputable) pro.style.width=(100*evt.loaded/evt.total)+'%'; };
-                }
-                xhr.onreadystatechange = function(){
-					if ( xhr.readyState == 4) {
-						setObject(btn, {disabled: false, value: btn.src_value});
-						if (xhr.status == 200) {
-							var rsp = (xhr.responseText+'').replace(/(^\s+)|(\s+$)/, '');
-							func('json'===type ? JSON.parse(rsp) : rsp);
-                        }else{
-							alert('请求错误');
-                        }
-					}
-				};
-				xhr.open('POST', url || location.href);
-				xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-				if('json'===type) xhr.setRequestHeader('Accept', 'application/json');
-				if (typeof data === 'string') xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-				xhr.send(data);
-            }
-			function date_time(date){
-				var d = [date.getFullYear(), date.getMonth()+1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds()];
-				for(var k in d) if(d[k].toString().length<2) d[k] = '0'+d[k];
-				return d.slice(0,3).join('-')+' '+d.slice(3,6).join(':')+'.'+d[6];
-			}
-			function insert_image(name, link){
-				var img = ' !['+name+']('+link+') ';
-				var pc = id('pre_content');
-				var pcv = pc.value;
-				pc.focus();
-				if(pc.selectionStart){
-					pc.value = pcv.substring(0, pc.selectionStart) + img + pcv.substring(pc.selectionStart, pcv.length);
-				}else{
-					pc.value += img;
-				}
-			}
-			function upload_qiniu(token, filename, file){
-				var xhr = newXhr();
-				var fm = new FormData();
-				fm.append('token', token);
-				fm.append('key', filename);
-				fm.append('file', file);
-				ajaxPost(xhr, 'http://upload.qiniu.com/', fm, function(qr){
-					insert_image(filename.replace(/\.[^\.]+$/, ''), 'http://'+id('pro').getAttribute('link')+'/'+filename);
-					setObject(id('pro').style, {width: '0'});
-				}, id('pre_submit'), 'json', id('pro'));
-			}
-			function init_press(){
-				var cache = localStorage.getItem('press');
-				if(cache){
-					var cj = JSON.parse(cache);
-					if(cj && location.href === cj.url){
-						id('press_time').innerHTML = date_time(new Date(cj.time));
-						id('pre_content').value = cj.press;
-					}
-				}
-				addEvent(id('pre_content'), 'input', function(){
-					var date = new Date();
-					id('press_time').innerHTML = date_time(date);
-					localStorage.setItem('press', JSON.stringify({time: date.getTime(), url: location.href, press: id('pre_content').value })); 
-				});
-				addEvent(id('press_form'), 'submit', function(evt){
-					var xhr = newXhr();
-					if(xhr){
-						evt.preventDefault();
-						ajaxPost(xhr, this.action, new FormData(this), function(r){
-							if(r && r.s){
-								localStorage.removeItem('press');
-								if(r.url) location.href = r.url;
-							}else if(r && r.login){
-								alert(r.m);
-								location.href = r.login;
-							}else{
-								alert(r && r.m ? r.m : '请求错误');
-							}
-						}, id('pre_submit'));
-					}
-				});
-				addEvent(id('file'), 'change', function(evt){
-					var xhr = newXhr();
-					if(xhr){
-						var file = this.files[0];
-						ajaxPost(xhr, id('pro').getAttribute('url'), 'filename='+encodeURIComponent(file.name)+'&filetype='+file.type, function(r){
-							if(r && r.token) upload_qiniu(r.token, r.filename, file); 
-							else alert(r && r.m ? r.m : '请求错误');
-						}, id('pre_submit'));
-					}
-				}, id('pre_submit'));
-			}
-			(function(){ // for press form 
-				window.onload = function(){ if('FormData' in window && 'localStorage' in window) init_press(); };
-			})();
-		</script>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+<title><?php echo $title; ?></title>
+<style type="text/css">
+html,body,div,h1,h2,h3,h4,h5,h6,ul,ol,li,form,p,input,textarea,a,span{margin:0; padding:0;}
+html,body{height:100%; font:13px/1.5 Verdana,sans-serif; }
+body{color: #555; text-shadow: 0 0 2px rgba(0,0,0,0.2); background: #F2F2F2;}
+h1{text-align:center; font-size: 1.8rem; line-height: 1.4em; padding:1% 0; margin-bottom: 0.5em; word-break:break-all;}
+ul{list-style-type:none;}
+a{color: #222; text-decoration:none;}
+a:hover{text-decoration: underline;}
+#main{max-width: 800px; margin: 0 auto; background: #FFF; min-height:100%; box-shadow:0 0 10px rgba(0,0,0,0.2);}
+#content{padding:1% 2%;}
+#pass_form{text-align:center;}
+.links{padding:0.2em; margin-bottom: 0.8em; font-size:0.9rem; color: #999; border-bottom: 1px solid #CCC;}
+.links a{margin-right: 0.5em;}
+.links span{float:right;}
+.links span.s-logout{margin:0 0 0 0.5em;}
+.links span.s-logout a{margin:0;}
+.error{text-align:center; font-size:1.5rem; line-height:3em;}
+.txt,.txa{border:1px solid #CCC; box-shadow:0px 1px 1px rgba(0, 0, 0, 0.075) inset; font-size:1rem; padding:1px 3px; line-height:1.5; color:#666; width:100%; display:border-box;box-sizing: border-box; -webkit-box-sizing:border-box; -moz-box-sizing: border-box; transition: border-color 0.15s ease-in-out 0s, box-shadow 0.15s ease-in-out 0s;}
+.txt:focus, .txa:focus{border-color:#66AFE9;box-shadow:0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 5px rgba(102, 175, 233, 0.6); outline: 0px none; }
+.fld{margin-bottom: 0.5rem;}
+.fld p, .fld .fld-p{margin-bottom: 4px; padding: 0 4px;}
+<?php if('press'==$action){ ?>
+/* press */
+.fld-p{position:relative;}
+.fld-c{position:relative; z-index:2;}
+.fld-pro{position: absolute; z-index: 0; left:0; top:0; width:0; height: 100%; background: #adffdc}
+.press-time{float:right; color: #999;}
+.pre-note{word-break:break-all; color: #999; text-shadow:none; border-top: 1px dashed #CCC; margin-top: 2em;padding: 0.5em 0;}
+<?php }elseif('view'==$action){ ?>
+/* view */
+.cont{font-size: 1.2rem; line-height:1.8em; color: #707070; word-break:break-all;}
+.cont p{margin-top: 0.5em;}
+.cont p.empty{line-height: 1em;}
+.cont p:first-child, .cont p.empty{margin-top:0;}
+.view:after{content:"----------(END)----------"; display:block; width: 100%; margin-top: 1.5em; text-align: center; color: #DDD;}
+.img{display:block; margin:0 auto; max-width: 100%;}
+<?php }elseif('home'==$action){ ?>
+/* home */
+.paginator{text-align:center; color: #999; padding: 0.5em 0;}
+.paginator a, .paginator span, .paginator b{padding:0.25em 0.5em; font-weight:normal;}
+.paginator b{color: #C5C5C5;}
+.list li{background:#F2F2F2; margin-bottom:0.8em;}
+.list li.lock{position:relative;}
+.list li.lock:before{content:"🔒"; position:absolute; left:0; top:-0.5em;}
+.list li.down a{color: #999; text-decoration: line-through;}
+.list a{display:block; font-size:1.2rem; line-height:1.3em; padding:0.5em; transition: box-shadow 0.15s ease-in-out 0s; word-break:break-all;}
+.list a:hover{box-shadow: 0 0 10px rgba(0,0,0,0.2) inset; text-decoration:none;}
+.list a span{float:right; color: #CBCBCB; font-size:1rem;}
+.total{margin-top: 1em; line-height: 2em; text-align:center; color: #AAA;}
+<?php } ?>
+@media only screen and (max-device-width : 800px) {
+	html,body{font-size: 12px;}
+	h1{font-size:1.5rem;}
+}
+</style>
+</head>
+<body>
+<div id="main">
+<div id="content">
+	<h1><?php echo $title; ?></h1>
+<?php if($is_ok || 'home'!=$action){ ?>
+	<div class="links">
+		<?php if($is_ok){ ?><span class="s-logout"><a href="<?php echo $base_url.'?a=logout';?>">Logout</a></span><?php } ?>
+		<?php if('view'==$action){ ?><span><?php echo empty($error) ? date('Y-m-d H:i:s', $data['pre_time']) : ''; ?></span><?php } ?>
+		<?php if('home'!=$action){ ?><a href="<?php echo $base_url;?>">Home</a><?php } ?>
+		<?php if($is_ok){ ?>
+			<?php if('press'!=$action || !empty($is_edit)){ ?><a href="<?php echo $base_url.'?a=press';?>">Press</a><?php } ?>
+			<?php if('view'==$s_action){ ?><a href="<?php echo $base_url.'?a=press&amp;p='.$data['pre_id'];?>">Edit</a><?php } ?>
+			<?php if(!empty($is_edit)){ ?><a href="<?php echo $base_url.'?a=view&amp;p='.$id;?>">View</a><?php } ?>
 		<?php } ?>
-	</body>
+	</div>
+<?php } ?>
+<?php if('error'==$action){ ?>
+	<div class="error"><?php echo $error; ?></div>
+<?php }elseif($a_login==$action){?>
+	<form action="" method="POST" id="pass_form">
+		<div class="fld"><p>密码：</p><input type="password" class="txt" name="pass" value="" /></div>
+		<div><input type="submit" value="进 入" /></div>
+	</form>
+<?php }elseif('press'==$action){ ?>
+	<form action="" method="POST" id="press_form">
+		<div class="fld"><p>标题：</p><input type="text" class="txt" name="pre_title" id="pre_title" value="<?php echo htmlspecialchars($press['pre_title']); ?>" /></div>
+		<div class="fld"><p>密码：</p><input type="text" class="txt" name="pre_pass" value="<?php echo htmlspecialchars($press['pre_pass']); ?>" /></div>
+		<div class="fld"><label><input type="checkbox" name="pre_status" value="1"<?php echo $press['pre_status'] ? ' checked' : ''; ?> />正常</label></div>
+		<div class="fld">
+			<div class="fld-p"><div class="fld-c"><?php if($is_file){ ?>图片：<input type="file" name="file" id="file" value="" /><?php }else{ echo '内容：'; } ?></div><div class="fld-pro" id="pro" url="<?php echo $base_url.'?a=qiniu_token';?>" link="<?php echo KC_QINIU_DOMAIN; ?>"></div></div>
+			<textarea cols="60" rows="8" class="txa" name="pre_content" id="pre_content"><?php echo htmlspecialchars($press['pre_content']);?></textarea>
+		</div>
+		<div><span id="press_time" class="press-time"></span><input type="submit" id="pre_submit" value="保 存" /></div>
+		<div class="pre-note">备注：<br>编辑内容未保存，再次打开，会自动恢复。<br>上传图片文件名只含有（数字、字母、_-.等）不会被重命名。</div>
+	</form>
+<?php }elseif('view'==$action){ ?>
+	<div class="view">
+		<?php if(!$is_passed){ ?>
+			<form action="" method="POST" id="pass_form">
+				<div class="fld"><p>输入Pass查看：</p><input type="text" class="txt" name="pass" value="" /></div>
+				<div><input type="submit" value="查 看" /></div>
+			</form>
+		<?php }else{ ?>
+			<div class="cont"><?php echo kc_cont($data['pre_content']);?></div>
+		<?php } ?>
+	</div>
+<?php }else{ ?>
+	<div id="list" class="list">
+		<ul>
+		<?php foreach($data_list as $d){ $style = array(); $d['pre_pass'] && $style[]='lock'; !$d['pre_status'] && $style[]='down';  ?>
+			<li<?php echo !empty($style) ? ' class="'.implode(' ', $style).'"' : '';?>><a href="<?php echo $base_url . '?a=view&amp;p='.$d['pre_id']; ?>"><span><?php echo date('Y/m/d', $d['pre_time']);?></span><?php echo $d['pre_title']; ?></a></li>
+		<?php } ?>
+		</ul>
+	</div>
+	<?php echo $paginator ? $paginator : '<div class="total">Total: '.$total.'</div>'; ?>
+<?php } ?>
+</div>
+</div>
+<?php echo !empty($error) && 'error'!=$action ? '<script type="text/javascript">alert("'.$error.'");</script>' : ''; ?>
+<?php if('press'==$action){ ?>
+<script type="text/javascript">
+function id(domid){
+	return document.getElementById(domid);
+}
+function addEvent(el, evt, func){
+	return el.addEventListener ? el.addEventListener(evt, func, false) : (el.attacheEvent ? el.attacheEvent('on'+evt, func) : null);
+}
+function newXhr(){
+	return window.XMLHttpRequest ? new XMLHttpRequest() : (window.ActiveXObject ? new ActiveXObject('Microsoft.XMLHTTP') : null );
+}
+function setObject(obj, arr){
+	for(var i in arr) obj[i] = arr[i];
+}
+function ajaxPost(xhr, url, data, func, btn, type, pro){
+	if(btn.disabled) return false;
+	setObject(btn, {'disabled': true, src_value: btn.value, value: '正在请求...'});
+	type = type || 'json';
+	if(pro){
+		setObject(pro.style, {width: '0', display: 'block'});
+		xhr.upload.onprogress = function(evt){ if (evt.lengthComputable) pro.style.width=(100*evt.loaded/evt.total)+'%'; };
+	}
+	xhr.onreadystatechange = function(){
+		if ( xhr.readyState == 4) {
+			setObject(btn, {disabled: false, value: btn.src_value});
+			if (xhr.status == 200) {
+				var rsp = (xhr.responseText+'').replace(/(^\s+)|(\s+$)/, '');
+				func('json'===type ? JSON.parse(rsp) : rsp);
+			}else{
+				alert('请求错误');
+			}
+		}
+	};
+	xhr.open('POST', url || location.href);
+	xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+	if('json'===type) xhr.setRequestHeader('Accept', 'application/json');
+	if (typeof data === 'string') xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+	xhr.send(data);
+}
+function date_time(date){
+	var d = [date.getFullYear(), date.getMonth()+1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds()];
+	for(var k in d) if(d[k].toString().length<2) d[k] = '0'+d[k];
+	return d.slice(0,3).join('-')+' '+d.slice(3,6).join(':')+'.'+d[6];
+}
+function insert_image(pct, img){
+	pct.focus();
+	var pcv = pct.value;
+	pct.value = pct.selectionStart ? pcv.substring(0, pct.selectionStart) + img + pcv.substring(pct.selectionStart, pcv.length) : (pcv + img);
+}
+function upload_qiniu(xhr, fmd, opt){
+	for(var k in opt) fmd.append(k, opt[k]);
+	ajaxPost(xhr, 'http://upload.qiniu.com/', fmd, function(qr){
+		setObject(id('pro').style, {width: '0'});
+		insert_image(id('pre_content'), ' !['+opt.key.replace(/\.[^\.]+$/, '') + '](' + 'http://'+id('pro').getAttribute('link')+'/'+opt.key+') ');
+	}, id('pre_submit'), 'json', id('pro'));
+}
+function init_press(){
+	var cache = localStorage.getItem('press');
+	if(cache){
+		var cj = JSON.parse(cache);
+		if(cj && location.href === cj.url){
+			id('press_time').innerHTML = date_time(new Date(cj.time));
+			id('pre_content').value = cj.press;
+		}
+	}
+	addEvent(id('pre_content'), 'input', function(){
+		var date = new Date();
+		id('press_time').innerHTML = date_time(date);
+		localStorage.setItem('press', JSON.stringify({time: date.getTime(), url: location.href, press: id('pre_content').value })); 
+	});
+	addEvent(id('press_form'), 'submit', function(evt){
+		var xhr = newXhr();
+		if(!xhr) return;
+		evt.preventDefault();
+		ajaxPost(xhr, this.action, new FormData(this), function(r){
+			if(r && r.s){
+				localStorage.removeItem('press');
+				if(r.url) location.href = r.url;
+			}else if(r && r.login){
+				alert(r.m);
+				location.href = r.login;
+			}else{
+				alert(r && r.m ? r.m : '请求错误');
+			}
+		}, id('pre_submit'));
+	});
+	if(!id('file')) return; // no file 
+	addEvent(id('file'), 'change', function(evt){
+		var xhr = newXhr();
+		if(!xhr) return;
+		var file = this.files[0];
+		ajaxPost(xhr, id('pro').getAttribute('url'), 'filename='+encodeURIComponent(file.name)+'&filetype='+file.type, function(r){
+			if(r && r.token && r.filename) upload_qiniu(xhr, new FormData(), {token: r.token, key: r.filename, file: file}); 
+			else alert(r && r.m ? r.m : '请求错误');
+		}, id('pre_submit'));
+	}, id('pre_submit'));
+} // init_press 
+(function(){ // for press form 
+	window.onload = function(){ if('FormData' in window && 'localStorage' in window) init_press(); };
+})();
+</script>
+<?php } ?>
+</body>
 </html>

@@ -2,8 +2,9 @@
 	// sae one page press
 	define('KC_PASS', 'pass'); // 默认密码，请修改！
 	define('KC_TITLE', 'Jesse😼随想'); // 定义标题 
-	define('KC_PERPAGE', 0 ); // 分页条数，0 为不分页，其他大于0整数为分页。
+	define('KC_PERPAGE', 10); // 分页条数，0 为不分页，其他大于0整数为分页。
 	define('KC_LOGIN', 'login'); // login action 默认不需要修改，修改后可以隐藏登陆地址，更安全！
+	define('KC_WEIBO', ''); 	// 微博地址
 	define('KC_QINIU_AK', '');	// 七牛的 AccessKey
 	define('KC_QINIU_SK', '');	// 七牛的 SecretKey
 	define('KC_QINIU_SCOPE', '');		// 七牛的空间名称！
@@ -40,7 +41,8 @@
 	$title = KC_TITLE;
 	$host  = $_SERVER['HTTP_HOST'];
 	$perpage = defined('KC_PERPAGE') && is_int(KC_PERPAGE) && KC_PERPAGE >= 0 ? KC_PERPAGE : 0 ; // get all
-	$page = !empty($_GET['page']) ? intval($_GET['page']) : 1; 
+	$page = !empty($_GET['page']) ? intval($_GET['page']) : 1;
+	$location = $_SERVER['REQUEST_URI'];
 	$base_url = explode('?', $_SERVER['REQUEST_URI'])[0];
 	$s_action = $action = !empty($_GET['a']) ? $_GET['a'] : '';
 	$a_login = defined('KC_LOGIN') && !in_array(KC_LOGIN, array('press', 'logout', 'view', 'error', 'home')) ? KC_LOGIN : 'login';
@@ -341,6 +343,8 @@ a:hover{text-decoration: underline;}
 .list a:hover{box-shadow: 0 0 10px rgba(0,0,0,0.2) inset; text-decoration:none;}
 .list a span{float:right; color: #CBCBCB; font-size:1rem;}
 .total{margin-top: 1em; line-height: 2em; text-align:center; color: #AAA;}
+.weibo{margin-top: 2em; line-height: 2em; text-align:center;}
+.weibo a{color: #BBB;}
 <?php } ?>
 @media only screen and (max-device-width : 800px) {
 	html,body{font-size: 12px;}
@@ -367,12 +371,12 @@ a:hover{text-decoration: underline;}
 <?php if('error'==$action){ ?>
 	<div class="error"><?php echo $error; ?></div>
 <?php }elseif($a_login==$action){?>
-	<form action="" method="POST" id="pass_form">
+	<form action="<?php echo $location; ?>" method="POST" id="pass_form">
 		<div class="fld"><p>密码：</p><input type="password" class="txt" name="pass" value="" /></div>
 		<div><input type="submit" value="进 入" /></div>
 	</form>
 <?php }elseif('press'==$action){ ?>
-	<form action="" method="POST" id="press_form">
+	<form action="<?php echo $location; ?>" method="POST" id="press_form">
 		<div class="fld"><p>标题：</p><input type="text" class="txt" name="pre_title" id="pre_title" value="<?php echo htmlspecialchars($press['pre_title']); ?>" /></div>
 		<div class="fld"><p>密码：</p><input type="text" class="txt" name="pre_pass" value="<?php echo htmlspecialchars($press['pre_pass']); ?>" /></div>
 		<div class="fld"><label><input type="checkbox" name="pre_status" value="1"<?php echo $press['pre_status'] ? ' checked' : ''; ?> />正常</label></div>
@@ -386,7 +390,7 @@ a:hover{text-decoration: underline;}
 <?php }elseif('view'==$action){ ?>
 	<div class="view">
 		<?php if(!$is_passed){ ?>
-			<form action="" method="POST" id="pass_form">
+			<form action="<?php echo $location; ?>" method="POST" id="pass_form">
 				<div class="fld"><p>输入Pass查看：</p><input type="text" class="txt" name="pass" value="" /></div>
 				<div><input type="submit" value="查 看" /></div>
 			</form>
@@ -403,6 +407,7 @@ a:hover{text-decoration: underline;}
 		</ul>
 	</div>
 	<?php echo $paginator ? $paginator : '<div class="total">Total: '.$total.'</div>'; ?>
+	<?php echo KC_WEIBO ? '<div class="weibo"><a href="'.KC_WEIBO.'" target="_blank">weibo</a></div>' : '';?>
 <?php } ?>
 </div>
 </div>
@@ -455,6 +460,7 @@ function insert_image(pct, img){
 	pct.focus();
 	var pcv = pct.value;
 	pct.value = pct.selectionStart ? pcv.substring(0, pct.selectionStart) + img + pcv.substring(pct.selectionStart, pcv.length) : (pcv + img);
+	cache_press();
 }
 function upload_qiniu(xhr, fmd, opt){
 	for(var k in opt) fmd.append(k, opt[k]);
@@ -462,6 +468,11 @@ function upload_qiniu(xhr, fmd, opt){
 		setObject(id('pro').style, {width: '0'});
 		insert_image(id('pre_content'), ' !['+opt.key.replace(/\.[^\.]+$/, '') + '](' + 'http://'+id('pro').getAttribute('link')+'/'+opt.key+') ');
 	}, id('pre_submit'), 'json', id('pro'));
+}
+function cache_press(){
+	var date = new Date();
+	id('press_time').innerHTML = date_time(date);
+	localStorage.setItem('press', JSON.stringify({time: date.getTime(), url: location.href, press: id('pre_content').value })); 
 }
 function init_press(){
 	var cache = localStorage.getItem('press');
@@ -473,15 +484,13 @@ function init_press(){
 		}
 	}
 	addEvent(id('pre_content'), 'input', function(){
-		var date = new Date();
-		id('press_time').innerHTML = date_time(date);
-		localStorage.setItem('press', JSON.stringify({time: date.getTime(), url: location.href, press: id('pre_content').value })); 
+		cache_press();
 	});
 	addEvent(id('press_form'), 'submit', function(evt){
 		var xhr = newXhr();
 		if(!xhr) return;
 		evt.preventDefault();
-		ajaxPost(xhr, this.action, new FormData(this), function(r){
+		ajaxPost(xhr, this.getAttribute('action'), new FormData(this), function(r){
 			if(r && r.s){
 				localStorage.removeItem('press');
 				if(r.url) location.href = r.url;

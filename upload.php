@@ -39,7 +39,7 @@
 				return KC_LOCALURL.trim($dir, './').'/'.trim($f, './');
 			}
 			public function delete($dir, $f){
-				$file = KC_LOCALDIR.trim($dir, './').'/'.trim($f, './')
+				$file = KC_LOCALDIR.trim($dir, './').'/'.trim($f, './');
 				file_exists($file) && @unlink($file);
 				return true;
 			}
@@ -141,7 +141,7 @@ body{font-size: 14px; color: #666;}
 <?php } ?>
 <?php if($is_ok){ ?>
 	<h1>文档传输</h1>
-	<p><a href="">刷新网页</a></p>
+	<p><a href="<?php echo $base_url; ?>">刷新网页</a></p>
 	<?php if(!empty($attaches)){ ?>
 		<div class="attaches" id="attaches">
 			<p>上传的文件</p>
@@ -219,7 +219,7 @@ body{font-size: 14px; color: #666;}
 		}
 		var xhr = newXhr();
 		if (xhr){
-			ajaxPost(xhr, id('pass_form').action, 'pass='+pass, function(html){
+			ajaxPost(xhr, id('pass_form').getAttribute('action'), 'pass='+pass, function(html){
 				if (!/id="pass_form"/.test(html)) id('main').innerHTML = html;
 				else alert("密码错误");
 			}, id('submit'), 'html');
@@ -236,7 +236,7 @@ body{font-size: 14px; color: #666;}
 		}
 		var xhr = newXhr();
 		if (xhr && window.FormData) {
-			ajaxPost(xhr, id('upload_form').action, new FormData(id('upload_form')), function(html){
+			ajaxPost(xhr, id('upload_form').getAttribute('action'), new FormData(id('upload_form')), function(html){
 				if(/^Error:/.test(html)) {
 					setObject(id('pro').style, {width: '0'});
 					alert(html);

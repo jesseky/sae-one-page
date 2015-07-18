@@ -321,6 +321,8 @@ a:hover{text-decoration: underline;}
 .fld-c{position:relative; z-index:2;}
 .fld-pro{position: absolute; z-index: 0; left:0; top:0; width:0; height: 100%; background: #adffdc}
 .press-time{float:right; color: #999;}
+.up-box span{display:none;}
+.up-box b{font-weight:normal;}
 .pre-note{word-break:break-all; color: #999; text-shadow:none; border-top: 1px dashed #CCC; margin-top: 2em;padding: 0.5em 0;}
 <?php }elseif('view'==$action){ ?>
 /* view */
@@ -381,7 +383,7 @@ a:hover{text-decoration: underline;}
 		<div class="fld"><p>密码：</p><input type="text" class="txt" name="pre_pass" value="<?php echo htmlspecialchars($press['pre_pass']); ?>" /></div>
 		<div class="fld"><label><input type="checkbox" name="pre_status" value="1"<?php echo $press['pre_status'] ? ' checked' : ''; ?> />正常</label></div>
 		<div class="fld">
-			<div class="fld-p"><div class="fld-c"><?php if($is_file){ ?>图片：<input type="file" name="file" id="file" value="" /><?php }else{ echo '内容：'; } ?></div><div class="fld-pro" id="pro" url="<?php echo $base_url.'?a=qiniu_token';?>" link="<?php echo KC_QINIU_DOMAIN; ?>"></div></div>
+			<div class="fld-p"><div class="fld-c"><?php if($is_file){ ?><div class="up-box" id="up_box">图片：<b>不支持</b><span><input type="file" name="file" id="file" value="" /></span></div><?php }else{ echo '内容：'; } ?></div><div class="fld-pro" id="pro" url="<?php echo $base_url.'?a=qiniu_token';?>" link="<?php echo KC_QINIU_DOMAIN; ?>"></div></div>
 			<textarea cols="60" rows="8" class="txa" name="pre_content" id="pre_content"><?php echo htmlspecialchars($press['pre_content']);?></textarea>
 		</div>
 		<div><span id="press_time" class="press-time"></span><input type="submit" id="pre_submit" value="保 存" /></div>
@@ -437,11 +439,12 @@ function ajaxPost(xhr, url, data, func, btn, type, pro){
 	xhr.onreadystatechange = function(){
 		if ( xhr.readyState == 4) {
 			setObject(btn, {disabled: false, value: btn.src_value});
+			if (pro) setObject(pro.style, {width: '0'});
 			if (xhr.status == 200) {
 				var rsp = (xhr.responseText+'').replace(/(^\s+)|(\s+$)/, '');
 				func('json'===type ? JSON.parse(rsp) : rsp);
 			}else{
-				alert('请求错误');
+				alert('请求错误' + (xhr.responseText ? ' '+xhr.responseText : ''));
 			}
 		}
 	};
@@ -465,7 +468,6 @@ function insert_image(pct, img){
 function upload_qiniu(xhr, fmd, opt){
 	for(var k in opt) fmd.append(k, opt[k]);
 	ajaxPost(xhr, 'http://upload.qiniu.com/', fmd, function(qr){
-		setObject(id('pro').style, {width: '0'});
 		insert_image(id('pre_content'), ' !['+opt.key.replace(/\.[^\.]+$/, '') + '](' + 'http://'+id('pro').getAttribute('link')+'/'+opt.key+') ');
 	}, id('pre_submit'), 'json', id('pro'));
 }
@@ -503,6 +505,8 @@ function init_press(){
 		}, id('pre_submit'));
 	});
 	if(!id('file')) return; // no file 
+	id('up_box').getElementsByTagName('b')[0].style.display = 'none';
+	id('up_box').getElementsByTagName('span')[0].style.display = 'inline-block';
 	addEvent(id('file'), 'change', function(evt){
 		var xhr = newXhr();
 		if(!xhr) return;

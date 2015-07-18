@@ -3,7 +3,7 @@
 	define('KC_SAVEDOMAIN', 'doc');		// 在SAE里设置的文件domain
 	define('KC_KVFILE', 'docs.json');	// k-v 缓存文件名
 	define('KC_LOCALDIR', '/Users/jesse/Sites/data/');		// 非SAE环境：存储根路径
-	define('KC_LOCALURL', 'http://localhost/~jesse/data/'); // 非SAE环境：访问网址
+	define('KC_LOCALURL', 'http://192.168.31.127/~jesse/data/'); // 非SAE环境：访问网址
 	define('KC_INFODIR',  '/Users/jesse/Sites/data/'); 		// 非SAE环境：文件描述存储路径
 	define('KC_IP', $_SERVER['REMOTE_ADDR']);
 	define('KC_TIME', time());

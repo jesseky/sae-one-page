@@ -4,6 +4,7 @@
 	define('KC_TITLE', 'Jesse😼随想'); // 定义标题 
 	define('KC_PERPAGE', 10); // 分页条数，0 为不分页，其他大于0整数为分页。
 	define('KC_LOGIN', 'login'); // login action 默认不需要修改，修改后可以隐藏登陆地址，更安全！
+	define('KC_THEME', 'wide'); // wide
 	define('KC_WEIBO', ''); 	// 微博地址
 	define('KC_QINIU_AK', '');	// 七牛的 AccessKey
 	define('KC_QINIU_SK', '');	// 七牛的 SecretKey
@@ -302,10 +303,10 @@ h1{text-align:center; font-size: 1.8rem; line-height: 1.4em; padding:1% 0; margi
 ul{list-style-type:none;}
 a{color: #222; text-decoration:none;}
 a:hover{text-decoration: underline;}
-#main{max-width: 800px; margin: 0 auto; background: #FFF; min-height:100%; box-shadow:0 0 10px rgba(0,0,0,0.2);}
+#main{max-width: 800px; _width: 800px; margin: 0 auto; background: #FFF; min-height:100%; box-shadow:0 0 10px rgba(0,0,0,0.2);}
 #content{padding:1% 2%;}
 #pass_form{text-align:center;}
-.links{padding:0.2em; margin-bottom: 0.8em; font-size:0.9rem; color: #999; border-bottom: 1px solid #CCC;}
+.links{padding:0.2em; margin-bottom: 1.5em; font-size:0.9rem; color: #999; border-bottom: 1px solid #CCC;}
 .links a{margin-right: 0.5em;}
 .links span{float:right;}
 .links span.s-logout{margin:0 0 0 0.5em;}
@@ -326,7 +327,7 @@ a:hover{text-decoration: underline;}
 .pre-note{word-break:break-all; color: #999; text-shadow:none; border-top: 1px dashed #CCC; margin-top: 2em;padding: 0.5em 0;}
 <?php }elseif('view'==$action){ ?>
 /* view */
-.cont{font-size: 1.2rem; line-height:1.8em; color: #707070; word-break:break-all;}
+.cont{font-size: 1.5rem; line-height:1.8em; color: #707070; word-break:break-all;}
 .cont p{margin-top: 0.5em;}
 .cont p.empty{line-height: 1em;}
 .cont p:first-child, .cont p.empty{margin-top:0;}
@@ -337,16 +338,19 @@ a:hover{text-decoration: underline;}
 .paginator{text-align:center; color: #999; padding: 0.5em 0;}
 .paginator a, .paginator span, .paginator b{padding:0.25em 0.5em; font-weight:normal;}
 .paginator b{color: #C5C5C5;}
-.list li{background:#F2F2F2; margin-bottom:0.8em;}
+.list li{margin-bottom:0.8em;}
 .list li.lock{position:relative;}
 .list li.lock:before{content:"🔒"; position:absolute; left:0; top:-0.5em;}
 .list li.down a{color: #999; text-decoration: line-through;}
-.list a{display:block; font-size:1.2rem; line-height:1.3em; padding:0.5em; transition: box-shadow 0.15s ease-in-out 0s; word-break:break-all;}
-.list a:hover{box-shadow: 0 0 10px rgba(0,0,0,0.2) inset; text-decoration:none;}
+.list a{display:block; font-size:1.5rem; line-height:1.3em; padding:0.5em; transition: box-shadow 0.15s ease-in-out 0s; word-break:break-all; border: 1px solid #F0F0F0; zoom: 1;}
+.list a:after{content:''; display: block; height:0; clear:both;}
+.list a:hover{text-decoration:none; border-color: #63C9F8;}
 .list a span{float:right; color: #CBCBCB; font-size:1rem;}
 .total{margin-top: 1em; line-height: 2em; text-align:center; color: #AAA;}
 .weibo{margin-top: 2em; line-height: 2em; text-align:center;}
 .weibo a{color: #BBB;}
+.theme-wide .list a {}
+.theme-wide .list a span{display: block; float: none;}
 <?php } ?>
 @media only screen and (max-device-width : 800px) {
 	html,body{font-size: 12px;}
@@ -354,7 +358,7 @@ a:hover{text-decoration: underline;}
 }
 </style>
 </head>
-<body>
+<body<?php echo in_array(KC_THEME, array('wide')) ? ' class="theme-'.KC_THEME.'"' : ''; ?>>
 <div id="main">
 <div id="content">
 	<h1><?php echo $title; ?></h1>
@@ -404,7 +408,7 @@ a:hover{text-decoration: underline;}
 	<div id="list" class="list">
 		<ul>
 		<?php foreach($data_list as $d){ $style = array(); $d['pre_pass'] && $style[]='lock'; !$d['pre_status'] && $style[]='down';  ?>
-			<li<?php echo !empty($style) ? ' class="'.implode(' ', $style).'"' : '';?>><a href="<?php echo $base_url . '?a=view&amp;p='.$d['pre_id']; ?>"><span><?php echo date('Y/m/d', $d['pre_time']);?></span><?php echo $d['pre_title']; ?></a></li>
+			<li<?php echo !empty($style) ? ' class="'.implode(' ', $style).'"' : '';?>><a href="<?php echo $base_url . '?a=view&amp;p='.$d['pre_id']; ?>"><?php echo $d['pre_title']; ?><span><?php echo date('Y/m/d', $d['pre_time']);?></span></a></li>
 		<?php } ?>
 		</ul>
 	</div>
